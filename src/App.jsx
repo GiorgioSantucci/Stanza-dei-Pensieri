@@ -13,7 +13,12 @@ function App() {
   const [isDoorOpen, setIsDoorOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const targetY = useRef(0);
-  const cardOffsets = useRef(frasi.map(() => Math.round((Math.random() * 30) - 15))).current;
+  
+  // Memorizziamo le posizioni casuali per non farle rigenerare a ogni render
+  const cardOffsets = useRef(frasi.map(() => ({
+    y: Math.round(Math.random() * 30 - 15),
+    rot: Math.round(Math.random() * 10 - 5)
+  }))).current;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -40,7 +45,6 @@ function App() {
     if (!isDoorOpen) return;
     const handleWheel = (e) => {
       e.preventDefault();
-      // Scroll positivo = bigliettini che vengono verso l'utente
       targetY.current = Math.max(0, Math.min(TOTAL_SCROLL, targetY.current + e.deltaY));
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
@@ -58,14 +62,14 @@ function App() {
 
       <div className="scroll-container" style={{ 
         opacity: isDoorOpen ? 1 : 0, 
-        transition: 'opacity 1.5s ease'
+        transition: 'opacity 1.5s ease',
+        perspectiveOrigin: `50% ${isMobile ? '45%' : '50%'}`
       }}>
         <div className="scene">
           {frasi.map((f, i) => {
             const startScroll = i * config.cardsStep;
-            // Il progresso 0.5 è il "dolce stil novo" (bigliettino leggibile al centro)
-            // Più scrolli, più il valore aumenta e il bigliettino ti viene incontro
-            const progress = 0.5 + (scrollY - startScroll) / (config.cardsStep * 2);
+            // Progress 0.5 = Bigliettino centrato e leggibile
+            const progress = 0.5 + (scrollY - startScroll) / (config.cardsStep * 2.5);
             const clampedProgress = Math.max(0, Math.min(1, progress));
 
             return (
@@ -75,7 +79,8 @@ function App() {
                 progress={clampedProgress}
                 isMobile={isMobile}
                 side={i % 2 === 0 ? 'left' : 'right'} 
-                offsetY={cardOffsets[i]}
+                offsetY={cardOffsets[i].y}
+                rotation={cardOffsets[i].rot}
                 styleClass={config.styles[i % config.styles.length]} 
                 decorator={config.decorators[i % config.decorators.length]}
               />

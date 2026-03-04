@@ -1,22 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Door.css';
 
 const Door = ({ isOpen, onClick }) => {
+  const [touchStart, setTouchStart] = useState(0);
+
+  const handleTouchStart = (e) => setTouchStart(e.targetTouches[0].clientX);
+  
+  const handleTouchEnd = (e) => {
+    const touchEnd = e.changedTouches[0].clientX;
+    // Se lo swipe è verso destra di almeno 50px
+    if (touchStart - touchEnd < -50) {
+      onClick();
+    }
+  };
+
   return (
     <div 
       className={`door-overlay ${isOpen ? 'is-open' : ''}`} 
       onClick={!isOpen ? onClick : null}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="door-surface">
         <div className="door-content">
           <div className="door-lock-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0110 0v4" />
-            </svg>
+             <div className="knob" />
           </div>
-          <p className="hint-text">Tocca per entrare nell'archivio</p>
+          <p className="hint-text">
+            {window.innerWidth < 768 ? "Scorri verso destra per entrare" : "Tocca per entrare"}
+          </p>
         </div>
+        <div className="door-bottom-light"></div>
       </div>
     </div>
   );
