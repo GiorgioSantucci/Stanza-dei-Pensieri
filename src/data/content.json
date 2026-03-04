@@ -1,0 +1,31 @@
+{
+  "frasi": [
+    "Torna sempre dove ti sei sentito al sicuro.",
+    "Non tutte le porte meritano di essere aperte.",
+    "Alcune stanze le porti con te ovunque tu vada.",
+    "Il silenzio sa più cose di quanto credi.",
+    "Chi si perde nel buio trova stelle che non sapeva esistessero.",
+    "Le crepe nel legno antico raccontano storie che nessuno ha chiesto di ascoltare.",
+    "Rimani abbastanza a lungo in un posto e comincia a conoscerti.",
+    "Certe parole non si dicono. Si lasciano.",
+    "La polvere è solo tempo che si è posato.",
+    "Hai percorso più strada di quanta tu ricordi.",
+    "Non ogni ombra nasconde qualcosa di brutto.",
+    "Tieni accesa almeno una piccola luce.",
+    "Le cose vecchie sanno aspettare.",
+    "Fermati. Respira. Sei ancora qui.",
+    "Le stanze vuote non sono mai davvero vuote.",
+    "Qualcosa in te sa già la risposta.",
+    "Non serve capire tutto. Basta sentirsi.",
+    "Il legno scricchiola perché ricorda.",
+    "Porta con te solo ciò che ti aiuta a camminare.",
+    "Ogni confine che hai attraversato ti appartiene."
+  ],
+  "config": {
+    "styles": ["default", "lined", "style-kalam", "style-homemade"],
+    "decorators": ["pin", "clip", "tape"],
+    "doorEnd": 900,
+    "cardsStep": 380,
+    "visibleWin": 3.0
+  }
+}
