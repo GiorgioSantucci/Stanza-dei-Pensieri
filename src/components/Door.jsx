@@ -27,7 +27,7 @@ const Door = ({ isOpen, onClick }) => {
              <div className="knob" />
           </div>
           <p className="hint-text">
-            {window.innerWidth < 768 ? "Scorri verso destra per entrare" : "Tocca per entrare"}
+            {window.innerWidth < 768 ? "Scorri verso destra per entrare nella Stanza dei Pensieri" : "Tocca per entrare nella Stanza dei Pensieri"}
           </p>
         </div>
         <div className="door-bottom-light"></div>
