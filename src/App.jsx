@@ -6,15 +6,14 @@ import { Atmosphere } from './components/Atmosphere';
 import './App.css';
 
 const { frasi, config } = content;
-const TOTAL_SCROLL = config.doorEnd + frasi.length * config.cardsStep;
+const TOTAL_SCROLL = (frasi.length - 1) * config.cardsStep;
 
 function App() {
   const [scrollY, setScrollY] = useState(0);
+  const [isDoorOpen, setIsDoorOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const targetY = useRef(0);
-  
-  // Genera offset stabili per i bigliettini
-  const cardOffsets = useRef(frasi.map(() => Math.round((Math.random() * 36) - 18))).current;
+  const cardOffsets = useRef(frasi.map(() => Math.round((Math.random() * 30) - 15))).current;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -22,8 +21,8 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Animazione fluida (LERP)
   useEffect(() => {
+    if (!isDoorOpen) return;
     let rafId;
     const tick = () => {
       setScrollY(prev => {
@@ -35,40 +34,48 @@ function App() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, []);
+  }, [isDoorOpen]);
 
-  // Input listener
   useEffect(() => {
+    if (!isDoorOpen) return;
     const handleWheel = (e) => {
       e.preventDefault();
+      // Scroll positivo = bigliettini che vengono verso l'utente
       targetY.current = Math.max(0, Math.min(TOTAL_SCROLL, targetY.current + e.deltaY));
     };
-    
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, []);
-
-  const doorProgress = Math.min(1, scrollY / config.doorEnd);
-  const roomScrollY = Math.max(0, scrollY - config.doorEnd);
-  const roomAtmo = Math.max(0, Math.min(1, (doorProgress - 0.4) / 0.6));
+  }, [isDoorOpen]);
 
   return (
     <div className="app-container">
       <div className="room-bg" />
-      <Atmosphere opacity={roomAtmo} />
+      <Atmosphere opacity={isDoorOpen ? 1 : 0} />
       
-      <div className="progress-bar" style={{ width: `${(scrollY / TOTAL_SCROLL) * 100}%` }} />
+      {isDoorOpen && (
+        <div className="progress-bar" style={{ width: `${(scrollY / TOTAL_SCROLL) * 100}%` }} />
+      )}
 
-      <div className="scroll-container" style={{ opacity: roomAtmo, pointerEvents: 'none' }}>
+      <div className="scroll-container" style={{ 
+        opacity: isDoorOpen ? 1 : 0, 
+        transition: 'opacity 1.5s ease'
+      }}>
         <div className="scene">
           {frasi.map((f, i) => {
-            const cs = i * config.cardsStep;
-            const ce = cs + config.cardsStep * config.visibleWin;
-            const p = Math.max(0, Math.min(1, (roomScrollY - cs) / (ce - cs)));
+            const startScroll = i * config.cardsStep;
+            // Il progresso 0.5 è il "dolce stil novo" (bigliettino leggibile al centro)
+            // Più scrolli, più il valore aumenta e il bigliettino ti viene incontro
+            const progress = 0.5 + (scrollY - startScroll) / (config.cardsStep * 2);
+            const clampedProgress = Math.max(0, Math.min(1, progress));
+
             return (
               <Bigliettino 
-                key={i} frase={f} progress={p} isMobile={isMobile}
-                side={i % 2 === 0 ? 'left' : 'right'} offsetY={cardOffsets[i]}
+                key={i} 
+                frase={f} 
+                progress={clampedProgress}
+                isMobile={isMobile}
+                side={i % 2 === 0 ? 'left' : 'right'} 
+                offsetY={cardOffsets[i]}
                 styleClass={config.styles[i % config.styles.length]} 
                 decorator={config.decorators[i % config.decorators.length]}
               />
@@ -77,7 +84,7 @@ function App() {
         </div>
       </div>
 
-      <Door doorProgress={doorProgress} />
+      <Door isOpen={isDoorOpen} onClick={() => setIsDoorOpen(true)} />
     </div>
   );
 }
