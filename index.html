@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>La Stanza dei Bigliettini</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Homemade+Apple&family=Kalam:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: #080503;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      font-family: 'Caveat', cursive;
+    }
+
+    #root {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ══════════════════════════════════════════════════
+       ROOM BACKGROUND
+       ↳ sostituisci gli URL con i tuoi percorsi immagine
+    ══════════════════════════════════════════════════ */
+    .room-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+
+      /* ── DESKTOP background image ── */
+      background-image: url('YOUR_DESKTOP_IMAGE_URL_HERE');
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+
+      /* fallback CSS room se non c'è immagine */
+      background-color: #1a0c07;
+    }
+
+    /* ── MOBILE background image (schermo < 768px) ── */
+    @media (max-width: 767px) {
+      .room-bg {
+        background-image: url('YOUR_MOBILE_IMAGE_URL_HERE');
+        background-position: center center;
+      }
+    }
+
+    /* vignetta sopra l'immagine per profondità */
+    .room-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 100% 100% at 50% 50%, transparent 35%, rgba(4,2,1,0.65) 100%),
+        linear-gradient(to bottom, rgba(4,2,1,0.45) 0%, transparent 25%, transparent 65%, rgba(4,2,1,0.55) 100%);
+      pointer-events: none;
+    }
+
+    /* ══════════════════════════════════════════════════
+       PARTICLES & FOG
+    ══════════════════════════════════════════════════ */
+    .particles-layer {
+      position: fixed; inset: 0; z-index: 1;
+      pointer-events: none; overflow: hidden;
+    }
+    .dust-particle {
+      position: absolute; border-radius: 50%;
+      background: rgba(220,170,90,0.7);
+      animation: floatDust linear infinite;
+    }
+    @keyframes floatDust {
+      0%   { transform: translateY(100vh) translateX(0) scale(0); opacity: 0; }
+      10%  { opacity: 1; transform: translateY(85vh) translateX(5px) scale(1); }
+      90%  { opacity: 0.4; }
+      100% { transform: translateY(-10vh) translateX(-8px) scale(0.5); opacity: 0; }
+    }
+    .fog-layer {
+      position: fixed; inset: 0; z-index: 2;
+      pointer-events: none; overflow: hidden;
+    }
+    .fog-wisp {
+      position: absolute; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(180,130,70,0.07) 0%, transparent 70%);
+      animation: driftFog ease-in-out infinite alternate;
+      filter: blur(22px);
+    }
+    @keyframes driftFog {
+      from { transform: translateX(-30px) translateY(0) scaleX(1); }
+      to   { transform: translateX(30px) translateY(-15px) scaleX(1.1); }
+    }
+
+    /* ══════════════════════════════════════════════════
+       CARDS
+    ══════════════════════════════════════════════════ */
+    .scroll-container {
+      position: fixed; inset: 0; z-index: 3; overflow: hidden;
+    }
+    .scene {
+      position: absolute; inset: 0;
+      perspective: 900px;
+      perspective-origin: 50% 58%;
+    }
+    .bigliettino-wrap {
+      position: absolute; top: 50%; left: 50%;
+      transform-style: preserve-3d;
+      pointer-events: none;
+      will-change: transform, opacity, filter;
+    }
+    .bigliettino {
+      position: relative;
+      /* più grande: era clamp(200px,28vw,320px) */
+      width: clamp(260px, 38vw, 420px);
+      min-height: 130px;
+      padding: 22px 28px 28px;
+      transform: translateX(-50%) translateY(-50%);
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(255,245,210,0.95) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 80%, rgba(210,170,110,0.45) 0%, transparent 50%),
+        linear-gradient(135deg, #f3e5c3 0%, #ebd7ac 40%, #e2cc9e 100%);
+      box-shadow:
+        0 3px 12px rgba(0,0,0,0.55),
+        0 10px 40px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.35),
+        inset 0 -1px 0 rgba(100,60,20,0.2);
+      border: 1px solid rgba(160,110,50,0.45);
+      border-radius: 1px 3px 2px 1px;
+    }
+    .bigliettino::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+      border-radius: inherit; pointer-events: none; mix-blend-mode: multiply;
+    }
+    .bigliettino::after {
+      content: ''; position: absolute; bottom:0; right:0; width:20px; height:20px;
+      background: linear-gradient(225deg, rgba(160,110,50,0.3) 50%, transparent 50%);
+      border-radius: 0 0 2px 0;
+    }
+    .bigliettino.lined {
+      background-image:
+        repeating-linear-gradient(to bottom, transparent 0px, transparent 29px, rgba(100,80,40,0.12) 29px, rgba(100,80,40,0.12) 30px),
+        radial-gradient(ellipse at 30% 20%, rgba(255,245,210,0.95) 0%, transparent 60%),
+        linear-gradient(135deg, #f3e5c3 0%, #ebd7ac 40%, #e2cc9e 100%);
+    }
+    .bigliettino-text {
+      font-family: 'Caveat', cursive;
+      /* più grande */
+      font-size: clamp(18px, 2.6vw, 26px);
+      line-height: 1.6; color: #2c1810;
+      position: relative; z-index: 1;
+      text-shadow: 0.4px 0.4px 0 rgba(100,50,10,0.25);
+    }
+    .bigliettino.style-kalam .bigliettino-text {
+      font-family: 'Kalam', cursive;
+      font-size: clamp(16px, 2.2vw, 22px);
+    }
+    .bigliettino.style-homemade .bigliettino-text {
+      font-family: 'Homemade Apple', cursive;
+      font-size: clamp(13px, 1.7vw, 18px);
+      line-height: 1.85;
+    }
+    .bigliettino-pin {
+      position: absolute; top:-9px; left:50%; transform:translateX(-50%);
+      width:12px; height:12px;
+      background: radial-gradient(circle at 35% 35%, #d44, #8b1a1a);
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,150,150,0.3);
+      z-index: 2;
+    }
+    .bigliettino-pin.clip {
+      width:34px; height:9px; border-radius:0;
+      background: linear-gradient(to bottom, #c0c0c0, #888);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.6); top:-5px;
+    }
+    .bigliettino-tape {
+      position: absolute; top:-7px; left:50%;
+      transform: translateX(-50%) rotate(-1.5deg);
+      width:56px; height:15px;
+      background: rgba(225,205,155,0.52);
+      border: 1px solid rgba(180,150,90,0.3); z-index:2;
+    }
+
+    /* ══════════════════════════════════════════════════
+       DOOR  (2D, full-viewport, flat)
+    ══════════════════════════════════════════════════ */
+    .door-scene {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      /* translateY driven by JS: 0% = visible, -100% = slid up & gone */
+      will-change: transform;
+    }
+
+    /* The door surface itself */
+    .door-surface {
+      position: absolute;
+      inset: 0;
+      /* rich dark wood */
+      background:
+        repeating-linear-gradient(
+          180deg,
+          transparent 0px, transparent 7px,
+          rgba(0,0,0,0.04) 7px, rgba(0,0,0,0.05) 8px
+        ),
+        repeating-linear-gradient(
+          92deg,
+          transparent 0px, transparent 28px,
+          rgba(80,40,10,0.06) 28px, rgba(80,40,10,0.06) 30px,
+          transparent 30px, transparent 70px,
+          rgba(50,22,5,0.04) 70px, rgba(50,22,5,0.04) 73px
+        ),
+        linear-gradient(170deg,
+          #3e1f0b 0%,
+          #2e1608 25%,
+          #3a1c0a 50%,
+          #271408 75%,
+          #321a09 100%
+        );
+    }
+
+    /* subtle sheen from top-left */
+    .door-surface::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 20% 15%, rgba(160,90,30,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* decorative raised panels */
+    .door-panels {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(14px, 3vh, 28px);
+      padding: clamp(30px, 6vw, 80px) clamp(20px, 5vw, 70px);
+    }
+    .door-panel-row {
+      display: flex;
+      gap: clamp(12px, 2.5vw, 24px);
+      width: 100%;
+    }
+    .door-panel-box {
+      flex: 1;
+      border: 1.5px solid rgba(80,40,10,0.55);
+      border-radius: 2px;
+      box-shadow:
+        inset 0 2px 5px rgba(0,0,0,0.45),
+        inset 0 -1px 2px rgba(200,120,40,0.08),
+        0 1px 1px rgba(160,90,30,0.12);
+      background: linear-gradient(150deg, rgba(60,28,8,0.35), rgba(30,12,3,0.5));
+    }
+    /* top row: taller */
+    .door-panel-row.top    .door-panel-box { height: clamp(80px, 18vh, 180px); }
+    /* middle row: slim decorative band */
+    .door-panel-row.middle .door-panel-box { height: clamp(24px, 5vh, 55px); }
+    /* bottom row: taller */
+    .door-panel-row.bottom .door-panel-box { height: clamp(80px, 20vh, 200px); }
+
+    /* door knob */
+    .door-knob-wrap {
+      position: absolute;
+      right: clamp(12%, 16%, 22%);
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .door-knob {
+      width: clamp(18px,3vw,30px);
+      height: clamp(18px,3vw,30px);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #f0d070, #a07830 55%, #5a3c10);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.7), inset 0 1px 3px rgba(255,220,100,0.4);
+    }
+    .door-keyhole {
+      width: clamp(8px,1.4vw,14px);
+      height: clamp(8px,1.4vw,14px);
+      position: relative;
+    }
+    .door-keyhole::before {
+      content: '';
+      position: absolute; top:0; left:50%; transform:translateX(-50%);
+      width: 60%; height: 60%;
+      border-radius: 50%;
+      border: 1.5px solid rgba(40,18,4,0.85);
+    }
+    .door-keyhole::after {
+      content: '';
+      position: absolute; top: 55%; left:50%; transform:translateX(-50%);
+      width: 35%; height: 50%;
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      background: rgba(20,8,2,0.85);
+    }
+
+    /* warm glow under door — bottom strip */
+    .door-bottom-light {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 5px;
+      background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,160,40,0.6) 0%, transparent 80%);
+      filter: blur(4px);
+      animation: bottomGlow 2.8s ease-in-out infinite alternate;
+    }
+    @keyframes bottomGlow {
+      from { opacity: 0.4; } to { opacity: 1; }
+    }
+
+    /* keyhole glow */
+    .door-kh-glow {
+      position: absolute;
+      right: calc(clamp(12%,16%,22%) - 8px);
+      top: calc(50% + clamp(14px,2.5vw,24px));
+      width: clamp(20px,3vw,36px);
+      height: clamp(20px,3vw,36px);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,190,60,0.75) 0%, transparent 70%);
+      filter: blur(5px);
+      animation: khGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes khGlow {
+      0%   { opacity:0.55; transform:scale(1); }
+      60%  { opacity:1;    transform:scale(1.4); }
+      100% { opacity:0.6;  transform:scale(0.9); }
+    }
+
+    /* scroll hint text on door */
+    .door-hint {
+      position: absolute;
+      bottom: clamp(30px,6vh,70px);
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(200,155,80,0.75);
+      font-family: 'Caveat', cursive;
+      font-size: clamp(15px, 2.2vw, 20px);
+      letter-spacing: 0.06em;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      animation: hintBob 1.8s ease-in-out infinite alternate;
+      white-space: nowrap;
+    }
+    @keyframes hintBob {
+      from { opacity:0.5; transform:translateX(-50%) translateY(0); }
+      to   { opacity:1;   transform:translateX(-50%) translateY(-7px); }
+    }
+
+    /* ══════════════════════════════════════════════════
+       PROGRESS BAR & ROOM HINT
+    ══════════════════════════════════════════════════ */
+    .progress-bar {
+      position: fixed; left:0; top:0; height:2px;
+      background: linear-gradient(to right, transparent, rgba(200,135,74,0.85), transparent);
+      z-index: 30; pointer-events: none;
+    }
+    .room-hint {
+      position: fixed;
+      bottom: 36px; left: 50%; transform: translateX(-50%);
+      z-index: 15;
+      color: rgba(200,150,80,0.8);
+      font-family: 'Caveat', cursive;
+      font-size: clamp(14px,2vw,18px);
+      letter-spacing: 0.05em;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      pointer-events: none;
+      animation: hintBob 1.8s ease-in-out infinite alternate;
+      transition: opacity 0.8s;
+    }
+
+    /* ══════════════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════════════ */
+    @media (max-width: 600px) {
+      .bigliettino { width: clamp(220px, 80vw, 320px); }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── easing ───────────────────────────────────────────────────────────────────
+const easeInOutCubic = t => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+const easeOutExpo    = t => t === 1 ? 1 : 1 - Math.pow(2,-10*t);
+
+// ─── data ─────────────────────────────────────────────────────────────────────
+const FRASI = [
+  "Torna sempre dove ti sei sentito al sicuro.",
+  "Non tutte le porte meritano di essere aperte.",
+  "Alcune stanze le porti con te ovunque tu vada.",
+  "Il silenzio sa più cose di quanto credi.",
+  "Chi si perde nel buio trova stelle che non sapeva esistessero.",
+  "Le crepe nel legno antico raccontano storie che nessuno ha chiesto di ascoltare.",
+  "Rimani abbastanza a lungo in un posto e comincia a conoscerti.",
+  "Certe parole non si dicono. Si lasciano.",
+  "La polvere è solo tempo che si è posato.",
+  "Hai percorso più strada di quanta tu ricordi.",
+  "Non ogni ombra nasconde qualcosa di brutto.",
+  "Tieni accesa almeno una piccola luce.",
+  "Le cose vecchie sanno aspettare.",
+  "Fermati. Respira. Sei ancora qui.",
+  "Le stanze vuote non sono mai davvero vuote.",
+  "Qualcosa in te sa già la risposta.",
+  "Non serve capire tutto. Basta sentirsi.",
+  "Il legno scricchiola perché ricorda.",
+  "Porta con te solo ciò che ti aiuta a camminare.",
+  "Ogni confine che hai attraversato ti appartiene.",
+];
+const CARD_STYLES = ['default','lined','style-kalam','style-homemade'];
+const DECORATORS  = ['pin','clip','tape'];
+
+// ─── scroll constants ─────────────────────────────────────────────────────────
+// Door phase:  0 → DOOR_END   virtual px   (door slides up)
+// Room phase:  DOOR_END → total            (bigliettini)
+const DOOR_END    = 900;
+const CARDS_STEP  = 380;
+const VISIBLE_WIN = 3.0;   // wider window = slower fade-out = longer readability
+const TOTAL_SCROLL = DOOR_END + FRASI.length * CARDS_STEP;
+
+// ─── Particles ────────────────────────────────────────────────────────────────
+function DustParticles({ opacity }) {
+  const pts = useRef(Array.from({length:26},(_,i)=>({
+    id:i, size:Math.random()*2.5+0.8,
+    left:Math.random()*100,
+    delay:Math.random()*18, duration:Math.random()*14+10,
+    op:Math.random()*0.5+0.2,
+  }))).current;
+  return (
+    <div className="particles-layer" style={{opacity, transition:'opacity 1.2s'}}>
+      {pts.map(p=>(
+        <div key={p.id} className="dust-particle" style={{
+          width:p.size, height:p.size, left:`${p.left}%`,
+          animationDelay:`${p.delay}s`, animationDuration:`${p.duration}s`, opacity:p.op,
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+function FogLayer({ opacity }) {
+  const ws = useRef(Array.from({length:6},(_,i)=>({
+    id:i, width:Math.random()*300+200, height:Math.random()*150+100,
+    left:Math.random()*90, top:Math.random()*80,
+    delay:Math.random()*6, duration:Math.random()*8+8, op:Math.random()*0.5+0.3,
+  }))).current;
+  return (
+    <div className="fog-layer" style={{opacity, transition:'opacity 1.2s'}}>
+      {ws.map(w=>(
+        <div key={w.id} className="fog-wisp" style={{
+          width:w.width, height:w.height, left:`${w.left}%`, top:`${w.top}%`,
+          animationDelay:`${w.delay}s`, animationDuration:`${w.duration}s`, opacity:w.op,
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+// ─── Room background ──────────────────────────────────────────────────────────
+function RoomBackground() {
+  return <div className="room-bg" />;
+}
+
+// ─── Door (2D flat, slides up) ────────────────────────────────────────────────
+// doorProgress 0→1: translateY 0% → -100%  with easing
+function Door({ doorProgress }) {
+  // eased slide: starts slow, accelerates
+  const eased    = easeInOutCubic(Math.min(1, doorProgress));
+  const translateY = -eased * 100; // percent
+
+  // hint fades out quickly when user starts scrolling
+  const hintOpacity = Math.max(0, 1 - doorProgress * 8);
+
+  return (
+    <div
+      className="door-scene"
+      style={{
+        transform: `translateY(${translateY}%)`,
+        // completely remove from paint tree once offscreen
+        visibility: doorProgress >= 1 ? 'hidden' : 'visible',
+      }}
+    >
+      <div className="door-surface" />
+
+      {/* raised panels */}
+      <div className="door-panels">
+        <div className="door-panel-row top">
+          <div className="door-panel-box" />
+          <div className="door-panel-box" />
+        </div>
+        <div className="door-panel-row middle">
+          <div className="door-panel-box" />
+        </div>
+        <div className="door-panel-row bottom">
+          <div className="door-panel-box" />
+          <div className="door-panel-box" />
+        </div>
+      </div>
+
+      {/* knob + keyhole */}
+      <div className="door-knob-wrap">
+        <div className="door-knob" />
+        <div className="door-keyhole" />
+      </div>
+
+      {/* glows */}
+      <div className="door-kh-glow" />
+      <div className="door-bottom-light" />
+
+      {/* scroll hint */}
+      <div className="door-hint" style={{ opacity: hintOpacity }}>
+        <span>scorri per entrare</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M12 5v14M5 12l7 7 7-7"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─── isMobile hook ────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const h = e => setMobile(e.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []);
+  return mobile;
+}
+
+// ─── Bigliettino ─────────────────────────────────────────────────────────────
+// NO rotation. Slower fade-out (plateau extended).
+// Opacity phases:
+//   [0.00–0.15] invisible (deep in fog)
+//   [0.15–0.35] fade in + deblur
+//   [0.35–0.72] full opacity, sharp             ← extended plateau
+//   [0.72–0.88] gentle begin to fade
+//   [0.88–1.00] dissolve out
+function Bigliettino({ frase, progress, side, offsetY, styleClass, decorator }) {
+  const isMobile = useIsMobile();
+  const Z_NEAR = 280, Z_FAR = -1600;
+  const zPos      = Z_FAR + (Z_NEAR - Z_FAR) * progress;
+  const scaleBase = 0.18 + 0.82 * Math.max(0, progress);
+
+  let opacity = 0, blurPx = 0;
+  if      (progress < 0.15) { opacity = 0;   blurPx = 10; }
+  else if (progress < 0.35) { const t=(progress-0.15)/0.20; opacity=t*0.85; blurPx=10-t*10; }
+  else if (progress < 0.72) { opacity = 1;   blurPx = 0; }
+  else if (progress < 0.88) { const t=(progress-0.72)/0.16; opacity=1-t*0.55; blurPx=t*3; }
+  else                       { const t=(progress-0.88)/0.12; opacity=0.45-t*0.45; blurPx=3+t*4; }
+
+  // Desktop: alternate left/right. Mobile: centered (lat = 0)
+  const lat = isMobile ? 0 : (side === 'left' ? -20 : 20); // vw
+
+  // offsetY is a stable random value per card, in vh units [-18, +18]
+  const vertShift = `${offsetY}vh`;
+
+  return (
+    <div className="bigliettino-wrap" style={{
+      transform: `translateZ(${zPos}px) translateX(${lat}vw) translateY(${vertShift}) scale(${scaleBase})`,
+      opacity,
+      filter: blurPx > 0.1 ? `blur(${blurPx.toFixed(1)}px)` : 'none',
+      transition: 'none',
+    }}>
+      <div className={`bigliettino ${styleClass}`}>
+        {decorator==='pin'  && <div className="bigliettino-pin"/>}
+        {decorator==='clip' && <div className="bigliettino-pin clip"/>}
+        {decorator==='tape' && <div className="bigliettino-tape"/>}
+        <p className="bigliettino-text">{frase}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+function App() {
+  const [scrollY, setScrollY] = useState(0);
+  const targetY  = useRef(0);
+  const rafId    = useRef(null);
+  const touchRef = useRef(null);
+
+  // smooth lerp
+  const tick = useCallback(() => {
+    setScrollY(prev => {
+      const d = targetY.current - prev;
+      if (Math.abs(d) < 0.2) return targetY.current;
+      return prev + d * 0.09;
+    });
+    rafId.current = requestAnimationFrame(tick);
+  }, []);
+
+  useEffect(() => {
+    rafId.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId.current);
+  }, [tick]);
+
+  const clamp = useCallback(v => Math.max(0, Math.min(TOTAL_SCROLL, v)), []);
+
+  // wheel
+  useEffect(() => {
+    const h = e => { e.preventDefault(); targetY.current = clamp(targetY.current + e.deltaY * 1.1); };
+    window.addEventListener('wheel', h, { passive:false });
+    return () => window.removeEventListener('wheel', h);
+  }, [clamp]);
+
+  // touch
+  useEffect(() => {
+    const ts = e => { touchRef.current = e.touches[0].clientY; };
+    const tm = e => {
+      if (touchRef.current === null) return;
+      const dy = touchRef.current - e.touches[0].clientY;
+      targetY.current = clamp(targetY.current + dy * 1.6);
+      touchRef.current = e.touches[0].clientY;
+      e.preventDefault();
+    };
+    const te = () => { touchRef.current = null; };
+    window.addEventListener('touchstart', ts, {passive:false});
+    window.addEventListener('touchmove',  tm, {passive:false});
+    window.addEventListener('touchend',   te);
+    return () => {
+      window.removeEventListener('touchstart', ts);
+      window.removeEventListener('touchmove',  tm);
+      window.removeEventListener('touchend',   te);
+    };
+  }, [clamp]);
+
+  // keyboard
+  useEffect(() => {
+    const h = e => {
+      if (e.key==='ArrowDown'||e.key===' ') targetY.current=clamp(targetY.current+200);
+      if (e.key==='ArrowUp')               targetY.current=clamp(targetY.current-200);
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [clamp]);
+
+  // derived
+  const doorProgress = Math.min(1, scrollY / DOOR_END);
+  const roomScrollY  = Math.max(0, scrollY - DOOR_END);
+
+  // room atmosphere appears as door slides away
+  const roomAtmo = Math.max(0, Math.min(1, (doorProgress - 0.4) / 0.6));
+
+  // stable random offsets generated once (seeded per index, not truly random each render)
+  const cardOffsets = useRef(
+    FRASI.map(() => Math.round((Math.random() * 36) - 18)) // [-18, +18] vh
+  ).current;
+
+  const cards = FRASI.map((frase, i) => {
+    const cs = i * CARDS_STEP;
+    const ce = cs + CARDS_STEP * VISIBLE_WIN;
+    return {
+      frase,
+      progress: Math.max(0, Math.min(1, (roomScrollY-cs)/(ce-cs))),
+      side: i%2===0 ? 'left' : 'right',
+      offsetY: cardOffsets[i],
+      styleClass: CARD_STYLES[i % CARD_STYLES.length],
+      decorator:  DECORATORS[i % DECORATORS.length],
+    };
+  });
+
+  const pct          = (scrollY / TOTAL_SCROLL) * 100;
+  const showRoomHint = doorProgress >= 1 && roomScrollY < 40;
+
+  return (
+    <>
+      <RoomBackground />
+      <DustParticles opacity={roomAtmo} />
+      <FogLayer      opacity={roomAtmo} />
+
+      {/* progress */}
+      <div className="progress-bar" style={{width:`${pct}%`}} />
+
+      {/* cards */}
+      <div
+        className="scroll-container"
+        style={{ opacity: roomAtmo, pointerEvents:'none' }}
+      >
+        <div className="scene">
+          {cards.map((c,i) => <Bigliettino key={i} {...c} />)}
+        </div>
+      </div>
+
+      {/* 2D door */}
+      <Door doorProgress={doorProgress} />
+
+      {/* room hint after door is gone */}
+      <div className="room-hint" style={{ opacity: showRoomHint ? 1 : 0 }}>
+        <span>scorri per scoprire</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M12 5v14M5 12l7 7 7-7"/>
+        </svg>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
